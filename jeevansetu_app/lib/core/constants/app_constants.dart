@@ -5,6 +5,14 @@ class AppConstants {
   static const String appName = 'JeevanSetu';
   static const String appTagline = 'Smart Accident Detection';
   static const String appVersion = '1.0.0';
+  static const String backendBaseUrl = String.fromEnvironment(
+    'JEEVANSETU_API_BASE_URL',
+    defaultValue: 'http://localhost:8000/api',
+  );
+  static const String backendAuthToken = String.fromEnvironment(
+    'JEEVANSETU_AUTH_TOKEN',
+    defaultValue: '',
+  );
 
   // Timing
   static const int splashDuration = 2500; // ms

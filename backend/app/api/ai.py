@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
+from app.ai_pipeline.api_routes import router as pipeline_router
 from app.api import deps
 from app.models.user import User
 from app.ai.model_service import AISeverityService
 
 router = APIRouter(prefix="/ai", tags=["ai"])
+router.include_router(pipeline_router)
 
 
 class SeverityPredictionInput(BaseModel):

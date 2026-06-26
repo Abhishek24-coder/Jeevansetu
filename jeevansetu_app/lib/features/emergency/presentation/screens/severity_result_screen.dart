@@ -20,6 +20,8 @@ class SeverityResultScreen extends ConsumerWidget {
 
     final severityColor = AppColors.severityColor(state.severityScore);
     final incidentId = state.activeIncidentId ?? 'INC_098716';
+    final hospital = state.recommendedHospital ?? 'Apollo Trauma Center';
+    final eta = state.hospitalEta ?? '8 min';
 
     return Scaffold(
       appBar: AppBar(
@@ -58,7 +60,7 @@ class SeverityResultScreen extends ConsumerWidget {
                       Icon(Icons.analytics_rounded, color: severityColor, size: 18),
                       const SizedBox(width: 8),
                       Text(
-                        'INCIDENT REPORTED • $incidentId',
+                        'INCIDENT REPORTED - $incidentId',
                         style: AppTextStyles.labelSmall.copyWith(
                           color: severityColor,
                           fontWeight: FontWeight.bold,
@@ -119,14 +121,14 @@ class SeverityResultScreen extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'SMS Network Alerted',
+                              'Emergency Network Alerted',
                               style: AppTextStyles.labelLarge.copyWith(
                                 color: isDark ? Colors.white : AppColors.textPrimaryLight,
                               ),
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              'GPS and medical details shared with Sunita Sharma, Rajesh Sharma.',
+                              'Best hospital: $hospital - ETA: $eta',
                               style: AppTextStyles.bodySmall.copyWith(
                                 color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                               ),
