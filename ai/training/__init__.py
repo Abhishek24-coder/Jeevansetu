@@ -1,2 +1,1 @@
-"""Model training pipelines for JeevanSetu AI."""
-
+"""Training utilities for JeevanSetu AI models."""

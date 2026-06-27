@@ -78,3 +78,31 @@ Scores are normalized in code. Higher trauma capability, ICU availability, beds,
 6. Phase 6 - FastAPI Integration: expose AI-only endpoints and backend handoff contracts.
 7. Phase 7 - Testing: unit, contract, load, drift, and field simulation tests.
 
+## How to prepare and train your crash dataset
+
+### 1) Prepare a crash sensor dataset for accident detection training
+
+Use `ai/training/prepare_dataset.py` to standardize your raw dataset into `ai/datasets/accident_detection_events.csv`.
+It supports the JeevanSetu crash dataset zip/parquet format with `gsensor`, `gyro`, `gps_speed`, and `label` columns.
+
+```bash
+cd c:\Users\prade\OneDrive\Desktop\jeevansetu\Jeevansetu\ai
+python training/prepare_dataset.py --input path/to/crash_dataset.zip --output datasets/accident_detection_events.csv --overwrite
+```
+
+The script converts sensor time-series traces into event-level training features and normalizes labels to `0`/`1`.
+
+### 2) Train the accident detection model
+
+```bash
+cd c:\Users\prade\OneDrive\Desktop\jeevansetu\Jeevansetu\ai
+python training/train.py --dataset datasets/accident_detection_events.csv --output-dir models
+```
+
+### 3) Training outputs
+
+- `ai/models/best_accident_detector.joblib`
+- `ai/models/random_forest_accident_detector.joblib`
+- `ai/models/xgboost_accident_detector.joblib`
+- `ai/models/training_metrics.json`
+

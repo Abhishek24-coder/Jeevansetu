@@ -3,9 +3,6 @@ from __future__ import annotations
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-from ai.feature_engineering.feature_extractor import FeatureExtractor
-from ai.models.schemas import MotionVector, SensorPayload
-
 
 ACCIDENT_REQUIRED_COLUMNS = {
     "accel_x",
@@ -47,29 +44,36 @@ class AccidentDatasetPreprocessor:
         return cleaned.reset_index(drop=True)
 
     def featurize(self, data: pd.DataFrame) -> pd.DataFrame:
-        rows: list[dict[str, float | int]] = []
-        for _, row in data.iterrows():
-            payload = SensorPayload(
-                accelerometer=MotionVector(x=row.accel_x, y=row.accel_y, z=row.accel_z),
-                gyroscope=MotionVector(x=row.gyro_x, y=row.gyro_y, z=row.gyro_z),
-                speed_kmph=row.speed_kmph,
-                previous_speed_kmph=row.previous_speed_kmph,
-                previous_orientation=MotionVector(
-                    x=row.orientation_prev_roll,
-                    y=row.orientation_prev_pitch,
-                    z=row.orientation_prev_yaw,
-                ),
-                current_orientation=MotionVector(
-                    x=row.orientation_curr_roll,
-                    y=row.orientation_curr_pitch,
-                    z=row.orientation_curr_yaw,
-                ),
-            )
-            features = FeatureExtractor.extract(payload)
-            feature_row = features.model_dump()
-            feature_row["label"] = int(row.label)
-            rows.append(feature_row)
-        return pd.DataFrame(rows)
+        features = pd.DataFrame(
+            {
+                "acceleration_magnitude": (
+                    data["accel_x"] ** 2 + data["accel_y"] ** 2 + data["accel_z"] ** 2
+                ).pow(0.5),
+                "gyro_magnitude": (
+                    data["gyro_x"] ** 2 + data["gyro_y"] ** 2 + data["gyro_z"] ** 2
+                ).pow(0.5),
+                "speed_drop": (data["previous_speed_kmph"] - data["speed_kmph"]).clip(lower=0),
+                "orientation_change": (
+                    (data["orientation_curr_roll"] - data["orientation_prev_roll"]) ** 2
+                    + (data["orientation_curr_pitch"] - data["orientation_prev_pitch"]) ** 2
+                    + (data["orientation_curr_yaw"] - data["orientation_prev_yaw"]) ** 2
+                ).pow(0.5),
+                "response_delay": 0.0,
+                "label": data["label"].astype(int),
+            }
+        )
+        features["impact_force"] = features["acceleration_magnitude"].clip(lower=0)
+        return features[
+            [
+                "acceleration_magnitude",
+                "gyro_magnitude",
+                "speed_drop",
+                "orientation_change",
+                "impact_force",
+                "response_delay",
+                "label",
+            ]
+        ].round(4)
 
     def split(
         self,
