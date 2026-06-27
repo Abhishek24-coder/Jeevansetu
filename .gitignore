@@ -17,6 +17,8 @@ backend/golden_minute.db
 backend/.env
 backend/firebase-key.json
 *.json
+.env
+*.env
 
 # IDE configs
 .vscode/
@@ -26,3 +28,10 @@ backend/firebase-key.json
 *.njsproj
 *.sln
 *.sw?
+
+# Datasets & Large Files
+CRSS2022CSV/
+CRSS2023CSV/
+*.csv
+*.joblib
+*.npy

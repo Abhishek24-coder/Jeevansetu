@@ -1,5 +1,6 @@
 from app.ai_pipeline.models.pipeline import HospitalCandidate, HospitalRecommendation, SeverityClass
-from app.ai_pipeline.utils.geo import haversine_distance_km
+from ai.hospital_recommendation import HospitalRecommender
+from ai.models.schemas import HospitalRecord
 
 
 class HospitalRecommendationEngine:
@@ -29,40 +30,47 @@ class HospitalRecommendationEngine:
         hospitals: list[HospitalCandidate],
         limit: int = 5,
     ) -> list[HospitalRecommendation]:
-        recommendations: list[HospitalRecommendation] = []
-
-        for hospital in hospitals:
-            distance_km = haversine_distance_km(
-                user_latitude,
-                user_longitude,
-                hospital.latitude,
-                hospital.longitude,
+        core_hospitals = [
+            HospitalRecord(
+                hospital_id=str(hospital.id),
+                hospital_name=hospital.name,
+                latitude=hospital.latitude,
+                longitude=hospital.longitude,
+                trauma_capability={1: 100, 2: 72, 3: 45}.get(hospital.trauma_level, 30),
+                icu_available=hospital.ventilators > 0,
+                beds_available=hospital.available_beds,
+                emergency_capacity=max(hospital.available_beds + hospital.ventilators, 1),
+                active=True,
             )
-            eta_minutes = max((distance_km / 45.0) * 60.0, 1.0)
-            trauma = cls._trauma_score(hospital.trauma_level, severity)
-            eta_score = cls._normalise_inverse(eta_minutes, worst_value=45.0)
-            distance_score = cls._normalise_inverse(distance_km, worst_value=30.0)
-            availability = cls._availability_score(hospital)
+            for hospital in hospitals
+        ]
+        core_recommendations = HospitalRecommender(core_hospitals).rank(
+            user_latitude,
+            user_longitude,
+            severity.value,
+        )
 
-            ranking_score = (
-                0.40 * trauma
-                + 0.30 * eta_score
-                + 0.20 * distance_score
-                + 0.10 * availability
-            ) * 100
-
-            recommendations.append(
-                HospitalRecommendation(
-                    hospital_id=hospital.id,
-                    hospital=hospital.name,
-                    eta=f"{round(eta_minutes)} min",
-                    eta_minutes=round(eta_minutes, 1),
-                    distance_km=round(distance_km, 2),
-                    trauma_capability_score=round(trauma * 100, 2),
-                    availability_score=round(availability * 100, 2),
-                    ranking_score=round(ranking_score, 2),
-                )
+        recommendations = [
+            HospitalRecommendation(
+                hospital_id=recommendation.hospital_id,
+                hospital=recommendation.hospital_name,
+                eta=f"{recommendation.eta_minutes} min",
+                eta_minutes=float(recommendation.eta_minutes),
+                distance_km=recommendation.distance_km,
+                trauma_capability_score=next(
+                    hospital.trauma_capability
+                    for hospital in core_hospitals
+                    if hospital.hospital_id == recommendation.hospital_id
+                ),
+                availability_score=round(
+                    HospitalRecommender._availability_score(
+                        next(hospital for hospital in core_hospitals if hospital.hospital_id == recommendation.hospital_id)
+                    )
+                    * 100,
+                    2,
+                ),
+                ranking_score=round(recommendation.ranking_score * 100, 2),
             )
-
-        recommendations.sort(key=lambda item: item.ranking_score, reverse=True)
-        return recommendations[:limit]
+            for recommendation in core_recommendations[:limit]
+        ]
+        return recommendations

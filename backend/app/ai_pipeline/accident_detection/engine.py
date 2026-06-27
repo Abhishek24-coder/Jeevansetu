@@ -1,4 +1,6 @@
 from app.ai_pipeline.models.pipeline import AccidentDetectionOutput, FeatureVector
+from ai.accident_detection import AccidentDetector
+from ai.models.schemas import FeatureVector as CoreFeatureVector
 
 
 class AccidentDetectionEngine:
@@ -8,26 +10,18 @@ class AccidentDetectionEngine:
 
     @classmethod
     def predict(cls, features: FeatureVector) -> AccidentDetectionOutput:
-        score = 0.0
-        reasons: list[str] = []
-
-        if features.impact_force >= cls.IMPACT_FORCE_THRESHOLD:
-            score += 0.45
-            reasons.append("high_impact_force")
-        if features.speed_drop >= cls.SPEED_DROP_THRESHOLD:
-            score += 0.35
-            reasons.append("sudden_speed_drop")
-        if features.gyroscope_magnitude >= cls.GYROSCOPE_SPIKE_THRESHOLD:
-            score += 0.20
-            reasons.append("gyroscope_spike")
-
-        if features.impact_force >= 8.0 and features.speed_drop >= 12.0:
-            score += 0.10
-            reasons.append("severe_impact_with_deceleration")
-
-        confidence = min(score, 0.99)
+        core_output = AccidentDetector().predict(
+            CoreFeatureVector(
+                acceleration_magnitude=features.acceleration_magnitude,
+                gyro_magnitude=features.gyroscope_magnitude,
+                speed_drop=features.speed_drop,
+                orientation_change=features.orientation_change,
+                impact_force=features.impact_force,
+                response_delay=features.response_delay,
+            )
+        )
         return AccidentDetectionOutput(
-            accident=confidence >= 0.60,
-            confidence=round(confidence, 2),
-            reasons=reasons,
+            accident=core_output.accident,
+            confidence=core_output.confidence,
+            reasons=core_output.reasons,
         )
